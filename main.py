@@ -41,14 +41,12 @@ class ObjectDetection:
               confidences.append(result.boxes.conf.cpu().numpy())
               class_ids.append(result.boxes.cls.cpu().numpy().astype(int))
             
-        
         detections = sv.Detections(
                     xyxy=results[0].boxes.xyxy.cpu().numpy(),
                     confidence=results[0].boxes.conf.cpu().numpy(),
                     class_id=results[0].boxes.cls.cpu().numpy().astype(int),
                     )
         
-    
         self.labels = [f"{self.CLASS_NAMES_DICT[class_id]} {confidence:0.2f}"
         for _, confidence, class_id, tracker_id
         in detections]
@@ -56,7 +54,37 @@ class ObjectDetection:
         frame = self.box_annotator.annotate(scene=frame, detections=detections, labels=self.labels)
         return frame
     
-    
+    def __call__(self):
+
+        cap = cv2.VideoCapture(self.capture_index)
+        assert cap.isOpened()
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+      
+        while True:
+          
+            start_time = time()
+            ret, frame = cap.read()
+            assert ret
+            
+            results = self.predict(frame)
+            frame = self.plot_bboxes(results, frame)
+            
+            end_time = time()
+            fps = 1/np.round(end_time - start_time, 2)
+             
+            cv2.putText(frame, f'FPS: {int(fps)}', (20,70), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,255,0), 2)
+            
+            cv2.imshow('YOLOv8 Detection', frame)
+ 
+            if cv2.waitKey(5) & 0xFF == 27:
+                break
+        
+        cap.release()
+        cv2.destroyAllWindows()
+            
+detector = ObjectDetection(capture_index=0)
+detector()
     
     
        
